@@ -1,0 +1,87 @@
+import pandas as pd
+from datasets import Dataset
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSeq2SeqLM,
+    DataCollatorForSeq2Seq,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments
+)
+import evaluate
+from untils.utils import load_model_and_tokenizer
+
+tokenizer, model = load_model_and_tokenizer("VietAI/vit5-base")
+
+df = pd.read_csv('/Users/ddlyy/Documents/TextSummarizer/data/bio_medicine.csv', encoding='utf-8')
+df = df.dropna(subset=['Document', 'Summary'])
+dataset = df[['Document', 'Summary']].rename(columns={'Document': 'input_text', 'Summary': 'target_text'})
+hf_dataset = Dataset.from_pandas(dataset)
+def preprocess_data(batch):
+    inputs = tokenizer(
+        batch["input_text"],
+        max_length=512,
+        truncation=True,
+        padding="max_length"
+    )
+    targets = tokenizer(
+        batch["target_text"],
+        max_length=128,
+        truncation=True,
+        padding="max_length"
+    )
+    inputs["labels"] = targets["input_ids"]
+    return inputs
+
+tokenized_dataset = hf_dataset.map(
+    preprocess_data,
+    batched=True,
+    remove_columns=["input_text", "target_text"]
+)
+split_dataset = tokenized_dataset.train_test_split(test_size=0.1)
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+rouge = evaluate.load("rouge")
+
+def compute_metrics(eval_preds, tokenizer):
+    preds, labels = eval_preds
+    labels = [[(l if l != -100 else tokenizer.pad_token_id) for l in label] for label in labels]
+
+    decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    decoded_preds = [pred.strip() for pred in decoded_preds]
+    decoded_labels = [label.strip() for label in decoded_labels]
+
+    result = rouge.compute(predictions=decoded_preds, references=decoded_labels)
+
+    return {
+        "rouge1": result["rouge1"] * 100,
+        "rouge2": result["rouge2"] * 100,
+        "rougeL": result["rougeL"] * 100
+    }
+
+training_args = Seq2SeqTrainingArguments(
+    output_dir="./vit5-vietnamese-summarization",
+    learning_rate=2e-5,
+    per_device_train_batch_size=8,
+    per_device_eval_batch_size=8,
+    gradient_accumulation_steps=4,
+    weight_decay=0.01,
+    save_total_limit=3,
+    num_train_epochs=15,
+    predict_with_generate=True,
+    logging_dir="./logs",
+    remove_unused_columns=False)
+
+trainer = Seq2SeqTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=split_dataset['train'],
+    eval_dataset=split_dataset['test'],
+    data_collator=data_collator,
+    compute_metrics=compute_metrics
+)
+trainer.train()
+
+metrics = trainer.evaluate()
+print(metrics)
