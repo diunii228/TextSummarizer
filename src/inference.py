@@ -1,8 +1,23 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import sys
 import os
-from untils.utils import load_model_and_tokenizer, generate_summary
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.utils import load_model_and_tokenizer, generate_summary
 import torch
+import os
+import gdown
 
+def download_model_if_not_exists():
+    model_path = Path("models/model.pt")
+    if not model_path.exists():
+        print("Model not found. Downloading...")
+        file_id = "1qjknYW12UpdS3ALhrpUFi971wmqWl8Yg"
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, str(model_path), quiet=False)
+    else:
+        print("Model already exists.")
+
+download_model_if_not_exists()
 def summarize_text_input(model, tokenizer, device):
     print("Nhập văn bản cần tóm tắt (gõ 'exit' để thoát):")
     while True:
@@ -35,7 +50,7 @@ def main():
     print("2. Nhập từ file .txt")
     choice = input(" Nhập lựa chọn (1 hoặc 2): ").strip()
 
-    model_name = "vit5-vietnamese-text-summarization"  # có thể đổi nếu cần
+    model_name = "/Users/ddlyy/Documents/GitHub/TextSummarizer/saved_models/vit5_summarizer"  
     tokenizer, model = load_model_and_tokenizer(model_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
