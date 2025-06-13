@@ -1,0 +1,16 @@
+cd ..
+cd ttvb-backend
+npm install
+node server.js
+cd ../ttvb-frontend
+cd ttvb-frontend
+npm install
+npm start
+
+--- đã thêm script để tự động start up backend và ai-service khi startup frontend
+-- chạy trong folder ttvb-frontend
+cd ttvb-frontend
+npm run dev
+
+-- cài dêpncies
+npm install concurrently --save-dev

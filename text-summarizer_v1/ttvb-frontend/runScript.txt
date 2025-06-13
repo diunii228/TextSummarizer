@@ -1,0 +1,3 @@
+cd ../ttvb-frontend
+npm install
+npm start
