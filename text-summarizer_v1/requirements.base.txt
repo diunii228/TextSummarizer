@@ -1,0 +1,10 @@
+transformers==4.51.3
+tokenizers==0.21.1
+torch==2.6.0
+sentencepiece
+nltk
+rouge-score
+evaluate
+flask==2.3.3
+flask-cors==4.0.0
+requests
