@@ -4,16 +4,20 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.utils import load_model_and_tokenizer, generate_summary
 import torch
-import os
 import gdown
+from pathlib import Path
 
 def download_model_if_not_exists():
-    model_path = Path("models/model.pt")
+    model_dir = Path("saved_models/vit5-summarizer")
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model_path = model_dir / "model.pt"
+
     if not model_path.exists():
         print("Model not found. Downloading...")
-        file_id = "1qjknYW12UpdS3ALhrpUFi971wmqWl8Yg"
+        file_id = "1axBwQlfgM-IlLDyg5OVxJG5cNL_X9OP5"
         url = f"https://drive.google.com/uc?id={file_id}"
         gdown.download(url, str(model_path), quiet=False)
+        print(f"Model saved to: {model_path}")
     else:
         print("Model already exists.")
 
@@ -50,7 +54,7 @@ def main():
     print("2. Nhập từ file .txt")
     choice = input(" Nhập lựa chọn (1 hoặc 2): ").strip()
 
-    model_name = "/Users/ddlyy/Documents/GitHub/TextSummarizer/saved_models/vit5_summarizer"  
+    model_name = os.path.join(BASE_DIR, "saved_models", "vit5_summarizer")    
     tokenizer, model = load_model_and_tokenizer(model_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
