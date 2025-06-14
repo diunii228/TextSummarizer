@@ -8,11 +8,11 @@ def load_model_and_tokenizer(model_path):
 
 def generate_summary(text, model, tokenizer, device='cpu'):
     model.to(device)
-    inputs = tokenizer(text, return_tensors="pt", max_length=1024, truncation=True).to(model.device)
+    inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True).to(model.device)
     summary_ids = model.generate(
         inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
-        max_length=256,
+        max_length=128,
         num_beams=4,
         early_stopping=True,
         no_repeat_ngram_size=3,        
