@@ -10,7 +10,8 @@ tqdm
 matplotlib
 seaborn
 nltk
-rouge-score
+rouge_score
 accelerate
 evaluate
 gdown
+protobuf
