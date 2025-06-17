@@ -4,22 +4,26 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.utils import load_model_and_tokenizer, generate_summary
 import torch
+import time
 import gdown
 from pathlib import Path
 
 def download_model_if_not_exists():
     model_dir = Path("saved_models/vit5-summarizer")
     model_dir.mkdir(parents=True, exist_ok=True)
-    model_path = model_dir / "model.pt"
 
-    if not model_path.exists():
-        print("Model not found. Downloading...")
-        file_id = "1axBwQlfgM-IlLDyg5OVxJG5cNL_X9OP5"
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, str(model_path), quiet=False)
-        print(f"Model saved to: {model_path}")
+    if not any(model_dir.iterdir()): 
+        print("Model chưa tồn tại. Đang tải về...")
+        folder_id = "1axBwQlfgM-IlLDyg5OVxJG5cNL_X9OP5"
+        gdown.download_folder(
+            id=folder_id,
+            output=str(model_dir),
+            quiet=False,
+            use_cookies=False
+        )
+        print(f"Đã lưu model tại: {model_dir}")
     else:
-        print("Model already exists.")
+        print("Model đã tồn tại.")
 
 download_model_if_not_exists()
 def summarize_text_input(model, tokenizer, device):
@@ -31,8 +35,11 @@ def summarize_text_input(model, tokenizer, device):
         if len(text.strip()) == 0:
             print("Vui lòng nhập văn bản hợp lệ.")
             continue
+        start = time.time()
         summary = generate_summary(text, model, tokenizer, device=device)
+        end = time.time()
         print("\nTóm tắt:\n" + summary)
+        print(f"\nThời gian tóm tắt: {end - start:.2f} giây")
 
 def summarize_file(model, tokenizer, device):
     file_path = input("\nNhập đường dẫn tới file .txt: ").strip()
@@ -44,8 +51,11 @@ def summarize_file(model, tokenizer, device):
     if len(text.strip()) == 0:
         print("File trống.")
         return
+    start = time.time()
     summary = generate_summary(text, model, tokenizer, device=device)
+    end = time.time()
     print("\nTóm tắt:\n" + summary)
+    print(f"\nThời gian tóm tắt: {end - start:.2f} giây")
 
 def main():
     print("Vietnamese Text Summarization\n")
@@ -54,7 +64,7 @@ def main():
     print("2. Nhập từ file .txt")
     choice = input(" Nhập lựa chọn (1 hoặc 2): ").strip()
 
-    model_name = os.path.join(BASE_DIR, "saved_models", "vit5_summarizer")    
+    model_name = os.path.join("vit5-summarizer")
     tokenizer, model = load_model_and_tokenizer(model_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
