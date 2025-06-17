@@ -1,5 +1,7 @@
 import pandas as pd
 from datasets import Dataset
+import matplotlib.pyplot as plt
+import seaborn as sns
 from transformers import (
     AutoTokenizer,
     AutoModelForSeq2SeqLM,
@@ -8,13 +10,36 @@ from transformers import (
     Seq2SeqTrainingArguments
 )
 import evaluate
-from untils.utils import load_model_and_tokenizer
+from src.utils import load_model_and_tokenizer
 
 tokenizer, model = load_model_and_tokenizer("VietAI/vit5-base")
 
 df = pd.read_csv('/Users/ddlyy/Documents/TextSummarizer/data/bio_medicine.csv', encoding='utf-8')
 df = df.dropna(subset=['Document', 'Summary'])
+print("Số dòng dữ liệu:", len(df))
+print("Các cột:", df.columns.tolist())
+
+print("5 mẫu dữ liệu đầu:")
+print(df[['Document', 'Summary']].head(5))
+
+df["doc_len"] = df["Document"].apply(lambda x: len(x.split()))
+df["sum_len"] = df["Summary"].apply(lambda x: len(x.split()))
+
+print("Thống kê độ dài:")
+print(df[["doc_len", "sum_len"]].describe())
+
+plt.figure(figsize=(12, 5))
+plt.subplot(1, 2, 1)
+sns.histplot(df["doc_len"], bins=50, kde=True, color="skyblue")
+plt.title("Phân bố độ dài Document")
+
+plt.subplot(1, 2, 2)
+sns.histplot(df["sum_len"], bins=50, kde=True, color="salmon")
+plt.title("Phân bố độ dài Summary")
+plt.tight_layout()
+plt.show()
 dataset = df[['Document', 'Summary']].rename(columns={'Document': 'input_text', 'Summary': 'target_text'})
+
 hf_dataset = Dataset.from_pandas(dataset)
 def preprocess_data(batch):
     inputs = tokenizer(
@@ -40,7 +65,6 @@ tokenized_dataset = hf_dataset.map(
 split_dataset = tokenized_dataset.train_test_split(test_size=0.1)
 
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
-rouge = evaluate.load("rouge")
 
 def compute_metrics(eval_preds, tokenizer):
     preds, labels = eval_preds
@@ -84,4 +108,33 @@ trainer = Seq2SeqTrainer(
 trainer.train()
 
 metrics = trainer.evaluate()
-print(metrics)
+
+from transformers import Seq2SeqTrainingArguments
+training_args = Seq2SeqTrainingArguments(
+    output_dir="./vit5-vietnamese-summarization-1",
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=2,
+    gradient_accumulation_steps=2,
+    weight_decay=0.01,
+    save_total_limit=1,
+    num_train_epochs=5,
+    predict_with_generate=True,
+    fp16=False,
+    logging_dir="./logs",
+    remove_unused_columns=False,
+)
+
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+
+trainer = Seq2SeqTrainer(
+    model=model,
+    args=training_args,
+    train_dataset=split_dataset['train'],
+    eval_dataset=split_dataset['test'],
+    data_collator=data_collator,
+    compute_metrics=compute_metrics,
+    tokenizer=tokenizer
+)
+trainer.train()
+
+metrics = trainer.evaluate()
