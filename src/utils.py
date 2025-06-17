@@ -1,9 +1,15 @@
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
-
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSeq2SeqLM,
+    DataCollatorForSeq2Seq,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments
+)
 def load_model_and_tokenizer(model_path):
-    tokenizer = T5Tokenizer.from_pretrained(model_path)
-    model = T5ForConditionalGeneration.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_path, local_files_only=True)
     return tokenizer, model
 
 def generate_summary(text, model, tokenizer, device='cpu'):
